@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 import sys
 import os
+import argparse
 import pyvjoy
 import pygame
 import pygame.midi
 from pygame.locals import *
 # display a list of MIDI devices connected to the computer
+
+def parse_args():
+    """Parse arguments passed at the command line"""
+    parser = argparse.ArgumentParser(description='Control a vJoy device with a Midi controller')
+    parser.add_argument('-m', type=int, help='midi device ID to listen for events on')
+    parser.add_argument('-l', action='store_true', help='list available midi devices and their IDs')
+    return parser.parse_args()
 
 def init_pygame():
     """Inits the pygame processes, returns pygame get and post handlers
@@ -104,20 +112,25 @@ def event_loop(vjdevice, midi_device, event_get, event_post):
                 elif pygame_midi_event.status == 128:
                     print('note %s off' % pygame_midi_event.data1)
                     midi_noteoff_handler(pygame_midi_event, vjdevice)
-#def main
-def main():
-    event_get, event_post = init_pygame()
-    vjdevice = init_vjoy()
 
-    print ("Available MIDI devices:")
-    print_device_info()
-    # Change this to override use of default input device
-    device_id = None
-    if device_id is None:
+def main():
+    args = parse_args()
+    event_get, event_post = init_pygame()
+
+    #If user just wants list of devices, do that and break
+    if args.l:
+        print ("Available MIDI devices:")
+        print_device_info()
+        sys.exit(0)
+
+    vjdevice = init_vjoy()
+    #If the user didn't give us a midi device, grab the default from pygame
+    if not args.m:
         input_id = pygame.midi.get_default_input_id()
     else:
-        input_id = device_id
-    print ("Using input_id: %s" % input_id)
+        input_id = args.m
+    print ("Using input_id: %i" % input_id)
+
     midi_device = pygame.midi.Input(input_id)
     event_loop(vjdevice, midi_device, event_get, event_post)
 
